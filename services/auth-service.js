@@ -23,7 +23,7 @@ export const register = async ({ name, email, password }) => {
 };
 
 export const login = async ({ email, password }) => {
-    try {
+    try {        
         const response = await axios.post(process.env.NEXT_PUBLIC_API_BASE_URL + "api/login", { 
             email: email, 
             password: password 

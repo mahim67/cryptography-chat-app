@@ -10,6 +10,7 @@ import { login } from "@/services/auth-service";
 import { useRouter } from "next/navigation";
 import { toast } from 'sonner';
 import { decryptPrivateKeyWithPassword } from "@/lib/cryptoFunctions";
+import { setCookie } from "nookies"; // Import nookies for cookie management
 
 export function LoginForm({ className, ...props }) {
     const router = useRouter();
@@ -31,9 +32,11 @@ export function LoginForm({ className, ...props }) {
 
             if (status === 200) {
                 data.privateKey = decryptPrivateKeyWithPassword(data.privateKey, formData.password);
-                localStorage.setItem("userData", JSON.stringify(data)); // Store login data in localStorage
+                setCookie(null, "userData", JSON.stringify(data), { path: "/" }); // Correct usage of setCookie
+                console.log("Cookie set:", JSON.stringify(data)); // Debugging log
+                localStorage.setItem("userData", JSON.stringify(data));
                 toast.success("Login successful. Redirecting...");
-                router.push("/");
+                router.push("/"); // Redirect to home page after successful login
             } else {
                 console.log('error', message);
                 toast.error(message || "Invalid credentials. Please try again.");

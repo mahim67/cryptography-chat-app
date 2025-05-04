@@ -1,21 +1,12 @@
 'use client'
 import Layout from "./layout";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import Sidebar from "./components/sidebar";
 import ChatList from "./components/chat-list";
 import ChatInbox from "./components/chat-inbox";
 
 export default function Home() {
-  const router = useRouter();
   const [selectedUser, setSelectedUser] = useState(null);
-
-  useEffect(() => {
-    const userData = localStorage.getItem("userData");
-    if (!userData) {
-      router.push("/login");
-    }
-  }, [router]);
 
   return (
     <Layout>

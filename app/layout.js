@@ -20,7 +20,7 @@ export default function RootLayout({ children }) {
   const router = useRouter();
 
   useEffect(() => {
-    const userData = localStorage.getItem("userData");
+    const userData = localStorage.getItem("userData");    
     if (!userData) {
       router.push("/login");
     }
