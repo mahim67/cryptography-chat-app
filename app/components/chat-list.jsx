@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -52,7 +51,7 @@ export default function ChatList({ onSelectUser }) {
                             {(allUsers.length > 0) && allUsers.map((user, index) => (
                                 <li
                                     key={index}
-                                    className="flex items-center justify-between p-3 hover:bg-muted cursor-pointer my-1 mx-2 bg-white rounded-sm"
+                                    className="flex items-center justify-between p-2 hover:bg-gray-200 cursor-pointer my-1 mx-2 bg-white rounded-sm"
                                     onClick={() => handleUserClick(user)} // Handle user click
                                 >
                                     <div className="flex items-center space-x-3">

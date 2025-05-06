@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useState, useEffect } from "react";
 import { getMessagesByConversationId, getConversationByUserId, sendMessageToServer } from "@/services/chat-list-service";
 import { encryptMessage, decryptMessage } from "@/lib/cryptoFunctions";
+import { io } from "socket.io-client";
 
 const ChatInbox = ({ selectedUser }) => {
   const [messages, setMessages] = useState([]);
@@ -13,24 +14,42 @@ const ChatInbox = ({ selectedUser }) => {
   const [inputMessage, setInputMessage] = useState("");
   const [recipientInfo, setRecipientInfo] = useState(null);
   const [conversionInfo, setConversionInfo] = useState(null);
-  const [decryptedMessages, setDecryptedMessages] = useState([]); // New state for decrypted messages
+  const [decryptedMessages, setDecryptedMessages] = useState([]);
+  const [socket, setSocket] = useState(null);
 
   let user = localStorage.getItem("userData");
   const privateKey = user ? JSON.parse(user).privateKey : '';
   user = user ? JSON.parse(user).user : {};
 
   useEffect(() => {
+    const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL, {
+      query: { userId: user?.id },
+    });
+    setSocket(newSocket);
+
+    return () => {
+      newSocket.disconnect();
+    };
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (socket) {
+      socket.on("newMessage", (newMessage) => {
+        setMessages((prevMessages) => [...prevMessages, newMessage]);
+      });
+    }
+  }, [socket]);
+
+  useEffect(() => {
     if (selectedUser?.id) {
       const fetchConversationAndMessages = async () => {
         setLoading(true);
         try {
-          // Fetch the conversation for the selected user
           const conversationResponse = await getConversationByUserId(selectedUser.id);
           if (conversationResponse.status === 200) {
             setConversionInfo(conversationResponse.data);
             const conversationId = conversationResponse.data.id;
 
-            // Fetch messages using the conversation ID
             const messagesResponse = await getMessagesByConversationId(conversationId);
             if (messagesResponse.status === 200) {
               setRecipientInfo(messagesResponse.data.recipient);
@@ -66,13 +85,13 @@ const ChatInbox = ({ selectedUser }) => {
           return { ...msg, decryptedMessage };
         })
       );
-      setDecryptedMessages(decrypted); // Update decrypted messages state
+      setDecryptedMessages(decrypted);
     };
 
     if (messages.length > 0) {
       decryptMessages();
     }
-  }, [messages, privateKey, user?.id]); // Removed dependency on decryptedMessages
+  }, [messages, privateKey, user?.id]);
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
@@ -83,8 +102,8 @@ const ChatInbox = ({ selectedUser }) => {
       const recipientPublicKey = recipientInfo?.public_key;
       const encryptedData = await encryptMessage(inputMessage, senderPublicKey, recipientPublicKey);
 
-      // Send the encrypted message to the server
-      const response = await sendMessageToServer({
+      // Emit the message via socket
+      socket.emit("sendMessage", {
         message: encryptedData.encryptedMessage,
         senderDecryptKey: encryptedData.encryptedKeyForSender,
         receiverDecryptKey: encryptedData.encryptedKeyForRecipient,
@@ -94,11 +113,7 @@ const ChatInbox = ({ selectedUser }) => {
         authTag: encryptedData.authTag,
       });
 
-      if (response.status === 200) {
-        setInputMessage(""); // Clear the input field
-      } else {
-        console.error("Failed to send message:", response.message);
-      }
+      setInputMessage(""); // Clear the input field
     } catch (error) {
       console.error("Error encrypting or sending message:", error);
     }
@@ -133,7 +148,7 @@ const ChatInbox = ({ selectedUser }) => {
         {loading ? (
           <div className="text-center text-gray-500">Loading messages...</div>
         ) : (
-          decryptedMessages.map((msg) => ( // Use decryptedMessages for rendering
+          decryptedMessages.map((msg) => (
             <div
               key={msg.id}
               className={`flex my-1 ${msg.sender_id === user?.id ? "justify-end" : "justify-start"}`}

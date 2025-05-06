@@ -25,8 +25,9 @@ import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 
 
-export function NavUser({ user }) {
+export function NavUser() {
     const router = useRouter();
+    const user = localStorage.getItem("userData") ? JSON.parse(localStorage.getItem("userData")).user : null;
 
     const handleLogout = () => {
         Cookies.remove('userData');
@@ -43,10 +44,6 @@ export function NavUser({ user }) {
                             <AvatarImage src={user?.avatar ?? 'https://github.com/shadcn.png'} alt={user?.name} />
                             <AvatarFallback className="rounded-lg">CN</AvatarFallback>
                         </Avatar>
-                        <div className="grid flex-1 text-left text-sm leading-tight">
-                            <span className="truncate font-semibold">{user?.name}</span>
-                            <span className="truncate text-xs">{user?.email}</span>
-                        </div>
                     </div>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
