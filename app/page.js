@@ -1,5 +1,4 @@
 'use client'
-import Layout from "./layout";
 import { useState } from "react";
 import Sidebar from "./components/sidebar";
 import ChatList from "./components/chat-list";
@@ -9,7 +8,6 @@ export default function Home() {
   const [selectedUser, setSelectedUser] = useState(null);
 
   return (
-    <Layout>
       <div className="flex h-screen">
         <Sidebar />
         <div className="flex flex-1">
@@ -31,6 +29,5 @@ export default function Home() {
           </div>
         </div>
       </div>
-    </Layout>
   );
 }

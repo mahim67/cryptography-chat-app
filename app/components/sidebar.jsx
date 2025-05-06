@@ -2,6 +2,7 @@ import clsx from 'clsx';
 import { MessageSquare, Bell, Settings, Star, Archive } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
+import { NavUser } from './nav-user';
 
 const SidebarIcon = ({ icon: Icon, active }) => (
     <div className={clsx("p-2 rounded-lg hover:bg-muted", active && "bg-muted")}>
@@ -21,10 +22,7 @@ export default function Sidebar() {
                 <SidebarIcon icon={Bell} />
                 <SidebarIcon icon={Settings} />
                 <Separator className="mb-6" />
-                <Avatar className="rounded-md">
-                    <AvatarImage src="https://github.com/shadcn.png" />
-                    <AvatarFallback>CN</AvatarFallback>
-                </Avatar>
+                <NavUser />
             </div>
         </aside>
     );
