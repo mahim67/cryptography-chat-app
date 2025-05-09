@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,6 +10,7 @@ import { getAllUsers } from "@/services/chat-list-service";
 
 export default function ChatList({ onSelectUser }) {
     const [allUsers, setAllUsers] = useState([]);
+    const router = useRouter();
 
     useEffect(() => {
         const fetchUsers = async () => {
@@ -29,6 +31,7 @@ export default function ChatList({ onSelectUser }) {
 
     const handleUserClick = (user) => {
         onSelectUser(user); // Pass the selected user to the parent
+        router.push(`/user/${user?.id}`);
     };
 
     return (

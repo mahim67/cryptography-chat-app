@@ -23,17 +23,24 @@ import {
 import Cookies from "js-cookie"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
-
+import { useEffect, useState } from "react"
 
 export function NavUser() {
     const router = useRouter();
-    const user = localStorage.getItem("userData") ? JSON.parse(localStorage.getItem("userData")).user : null;
+    const [user, setUser] = useState(null);
+
+    useEffect(() => {
+        const userData = localStorage.getItem("userData");
+        if (userData) {
+            setUser(JSON.parse(userData).user);
+        }
+    }, []);
 
     const handleLogout = () => {
         Cookies.remove('userData');
         toast.success("Logout successfully...");
         router.push("/login");
-    }
+    };
 
     return (
         <>
@@ -83,5 +90,5 @@ export function NavUser() {
                 </DropdownMenuContent>
             </DropdownMenu>
         </>
-    )
+    );
 }

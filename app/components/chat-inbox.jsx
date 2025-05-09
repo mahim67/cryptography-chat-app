@@ -1,51 +1,66 @@
+'use client';
+
+import { useState, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Paperclip, Smile, Send } from "lucide-react";
+import { Send } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useState, useEffect } from "react";
 import { getMessagesByConversationId, getConversationByUserId, sendMessageToServer } from "@/services/chat-list-service";
 import { encryptMessage, decryptMessage } from "@/lib/cryptoFunctions";
 import { io } from "socket.io-client";
 
-const ChatInbox = ({ selectedUser }) => {
+const ChatInbox = ({ selectedUserId }) => {
+  const [socket, setSocket] = useState(null);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [inputMessage, setInputMessage] = useState("");
   const [recipientInfo, setRecipientInfo] = useState(null);
   const [conversionInfo, setConversionInfo] = useState(null);
   const [decryptedMessages, setDecryptedMessages] = useState([]);
-  const [socket, setSocket] = useState(null);
+  const [user, setUser] = useState({});
+  const [privateKey, setPrivateKey] = useState(null);
+  const [selectedUser, setSelectedUser] = useState({});
 
-  let user = localStorage.getItem("userData");
-  const privateKey = user ? JSON.parse(user).privateKey : '';
-  user = user ? JSON.parse(user).user : {};
+  useEffect(() => {
+    const userData = localStorage.getItem("userData");
+    if (userData) {
+      const userParseData = JSON.parse(userData)?.user;
+      setUser(userParseData);      
+      setPrivateKey(userParseData ? userParseData.private_key : '');
+    }
+  }, []);
 
   useEffect(() => {
     const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL, {
-      query: { userId: user?.id },
+      transports: ["websocket"],
+      secure: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 3000,
     });
     setSocket(newSocket);
+    console.log('socket - ', newSocket);
 
     return () => {
       newSocket.disconnect();
     };
+
   }, [user?.id]);
 
   useEffect(() => {
     if (socket) {
-      socket.on("newMessage", (newMessage) => {
+      socket.on("RceiveMessage", (newMessage) => {
         setMessages((prevMessages) => [...prevMessages, newMessage]);
       });
     }
   }, [socket]);
 
   useEffect(() => {
-    if (selectedUser?.id) {
+    if (selectedUserId) {
       const fetchConversationAndMessages = async () => {
         setLoading(true);
         try {
-          const conversationResponse = await getConversationByUserId(selectedUser.id);
+          const conversationResponse = await getConversationByUserId(selectedUserId);
           if (conversationResponse.status === 200) {
             setConversionInfo(conversationResponse.data);
             const conversationId = conversationResponse.data.id;
@@ -53,6 +68,7 @@ const ChatInbox = ({ selectedUser }) => {
             const messagesResponse = await getMessagesByConversationId(conversationId);
             if (messagesResponse.status === 200) {
               setRecipientInfo(messagesResponse.data.recipient);
+              setSelectedUser(messagesResponse.data.recipient);
               setMessages(messagesResponse.data.messages || []);
             } else {
               console.error("Failed to fetch messages:", messagesResponse.message);
@@ -69,9 +85,9 @@ const ChatInbox = ({ selectedUser }) => {
 
       fetchConversationAndMessages();
     }
-  }, [selectedUser]);
+  }, [selectedUserId]);
 
-  useEffect(() => {
+  useEffect(() => {    
     const decryptMessages = async () => {
       const decrypted = await Promise.all(
         messages.map(async (msg) => {
@@ -102,13 +118,24 @@ const ChatInbox = ({ selectedUser }) => {
       const recipientPublicKey = recipientInfo?.public_key;
       const encryptedData = await encryptMessage(inputMessage, senderPublicKey, recipientPublicKey);
 
-      // Emit the message via socket
-      socket.emit("sendMessage", {
+      // Send the encrypted message to the server
+      const response = await sendMessageToServer({
         message: encryptedData.encryptedMessage,
         senderDecryptKey: encryptedData.encryptedKeyForSender,
         receiverDecryptKey: encryptedData.encryptedKeyForRecipient,
         iv: encryptedData.iv,
-        recipientId: selectedUser.id,
+        recipientId: selectedUserId,
+        conversationId: conversionInfo?.id,
+        authTag: encryptedData.authTag,
+      });
+
+      // Emit the message via socket
+      socket.emit("SendMessage", {
+        message: encryptedData.encryptedMessage,
+        senderDecryptKey: encryptedData.encryptedKeyForSender,
+        receiverDecryptKey: encryptedData.encryptedKeyForRecipient,
+        iv: encryptedData.iv,
+        recipientId: selectedUserId,
         conversationId: conversionInfo?.id,
         authTag: encryptedData.authTag,
       });
@@ -133,11 +160,11 @@ const ChatInbox = ({ selectedUser }) => {
       <div className="flex items-center justify-between p-4 bg-white shadow border-b">
         <div className="flex items-center gap-3">
           <Avatar>
-            <AvatarImage src={selectedUser.avatar || "https://github.com/shadcn.png"} />
-            <AvatarFallback>{selectedUser.name[0]}</AvatarFallback>
+            <AvatarImage src={selectedUser?.avatar || "https://github.com/shadcn.png"} />
+            <AvatarFallback>{selectedUser?.name ? selectedUser?.name[0] : 'CN'}</AvatarFallback>
           </Avatar>
           <div>
-            <h2 className="text-sm font-semibold">{selectedUser.name}</h2>
+            <h2 className="text-sm font-semibold">{selectedUser?.name}</h2>
             <p className="text-xs text-gray-500">online</p>
           </div>
         </div>
@@ -177,6 +204,7 @@ const ChatInbox = ({ selectedUser }) => {
           size="icon"
           className="bg-green-500 text-white hover:bg-green-600"
           onClick={handleSendMessage}
+          disabled={inputMessage ? false : true}
         >
           <Send className="w-5 h-5" />
         </Button>
