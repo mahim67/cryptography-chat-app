@@ -1,10 +1,21 @@
 import React, { useState } from 'react'
 import Sidebar from './components/sidebar';
 import ChatList from './components/chat-list';
+import { usePathname } from "next/navigation";
 
 const AppLayout = ({ children }) => {
     const [selectedUser, setSelectedUser] = useState(null);
+    console.log(selectedUser);
+    const pathname = usePathname();
 
+    const noLayoutRoutes = ["/login", "/register"];
+    const isNoLayoutRoute = noLayoutRoutes.includes(pathname);
+    
+    if (isNoLayoutRoute) {
+        return (
+            <div>{children}</div>
+        )
+    }
     return (
         <div className="flex h-screen">
             <Sidebar />
