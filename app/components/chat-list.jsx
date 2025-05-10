@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { getAllUsers } from "@/services/chat-list-service";
+import { NewUser } from "./new-user";
 
 export default function ChatList({ onSelectUser }) {
     const [allUsers, setAllUsers] = useState([]);
@@ -39,7 +40,10 @@ export default function ChatList({ onSelectUser }) {
             <Card className="w-100 h-screen rounded-none py-0 gap-0">
                 <CardContent className="p-0">
                     <div className="border-b p-4">
-                        <h2 className="text-lg font-semibold">Chats</h2>
+                        <div className="flex">
+                            <h2 className="text-lg font-semibold">Chats</h2>
+                            <NewUser />
+                        </div>
                         <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 mt-2">
                             <form>
                                 <div className="relative">
