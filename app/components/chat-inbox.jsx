@@ -1,216 +1,173 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Send } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getMessagesByConversationId, getConversationByUserId, sendMessageToServer } from "@/services/chat-list-service";
-import { encryptMessage, decryptMessage } from "@/lib/cryptoFunctions";
-import { io } from "socket.io-client";
+import { encryptMessage } from "@/lib/cryptoFunctions";
+import { useSocketConnection } from "@/hooks/useSocketConnection";
+import { useMessageHandling } from "@/hooks/useMessageHandling";
+import ChatHeader from "./ChatHeader";
+import MessageDisplay from "./MessageDisplay";
+import MessageInput from "./MessageInput";
 
 const ChatInbox = ({ selectedUserId }) => {
-  const [socket, setSocket] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [inputMessage, setInputMessage] = useState("");
-  const [recipientInfo, setRecipientInfo] = useState(null);
-  const [conversionInfo, setConversionInfo] = useState(null);
-  const [decryptedMessages, setDecryptedMessages] = useState([]);
-  const [user, setUser] = useState({});
-  const [privateKey, setPrivateKey] = useState(null);
-  const [selectedUser, setSelectedUser] = useState({});
+    const [messages, setMessages] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [recipientInfo, setRecipientInfo] = useState(null);
+    const [conversionInfo, setConversionInfo] = useState(null);
+    const [user, setUser] = useState({});
+    const [privateKey, setPrivateKey] = useState(null);
+    const [selectedUser, setSelectedUser] = useState({});
 
-  useEffect(() => {
-    const userData = localStorage.getItem("userData");
-    if (userData) {
-      const userParseData = JSON.parse(userData)?.user;
-      setUser(userParseData);      
-      setPrivateKey(userParseData ? userParseData.private_key : '');
-    }
-  }, []);
+    // Get user data from localStorage
+    useEffect(() => {
+        const userData = localStorage.getItem("userData");
+        if (userData) {
+            try {
+                const parsedData = JSON.parse(userData);
+                const userParseData = parsedData?.user;
+                setUser(userParseData);
 
-  useEffect(() => {
-    const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL, {
-      transports: ["websocket"],
-      secure: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 3000,
-    });
-    setSocket(newSocket);
-    console.log('socket - ', newSocket);
-
-    return () => {
-      newSocket.disconnect();
-    };
-
-  }, [user?.id]);
-
-  useEffect(() => {
-    if (socket) {
-      socket.on("RceiveMessage", (newMessage) => {
-        setMessages((prevMessages) => [...prevMessages, newMessage]);
-      });
-    }
-  }, [socket]);
-
-  useEffect(() => {
-    if (selectedUserId) {
-      const fetchConversationAndMessages = async () => {
-        setLoading(true);
-        try {
-          const conversationResponse = await getConversationByUserId(selectedUserId);
-          if (conversationResponse.status === 200) {
-            setConversionInfo(conversationResponse.data);
-            const conversationId = conversationResponse.data.id;
-
-            const messagesResponse = await getMessagesByConversationId(conversationId);
-            if (messagesResponse.status === 200) {
-              setRecipientInfo(messagesResponse.data.recipient);
-              setSelectedUser(messagesResponse.data.recipient);
-              setMessages(messagesResponse.data.messages || []);
-            } else {
-              console.error("Failed to fetch messages:", messagesResponse.message);
+                // Set private key
+                if (parsedData.privateKey) {
+                    setPrivateKey(parsedData.privateKey);
+                } else {
+                    console.error("Private key not found in user data");
+                }
+            } catch (error) {
+                console.error("Error parsing user data:", error);
             }
-          } else {
-            console.error("Failed to fetch conversation:", conversationResponse.message);
-          }
-        } catch (error) {
-          console.error("Error fetching conversation or messages:", error);
-        } finally {
-          setLoading(false);
         }
-      };
+    }, []);
 
-      fetchConversationAndMessages();
-    }
-  }, [selectedUserId]);
+    // Initialize socket connection
+    const { socket, socketConnected, socketError, joinChatRoom, sendSocketMessage } =
+        useSocketConnection(user?.id, conversionInfo?.id);
 
-  useEffect(() => {    
-    const decryptMessages = async () => {
-      const decrypted = await Promise.all(
-        messages.map(async (msg) => {
-          const decryptedMessage = await decryptMessage(
-            msg.message,
-            msg.sender_id === user?.id ? msg.sender_decrypt_key : msg.receiver_decrypt_key,
-            msg.iv,
-            privateKey,
-            msg.auth_tag
-          );
-          return { ...msg, decryptedMessage };
-        })
-      );
-      setDecryptedMessages(decrypted);
+    // Listen for incoming messages
+    useEffect(() => {
+        if (socket && socketConnected) {
+            console.log('RceiveMessage on');
+            socket.on("RceiveMessage", (newMessage) => {
+                console.log("New message received:", newMessage);
+                setMessages((prevMessages) => [...prevMessages, newMessage]);
+            });
+        }
+
+        return () => {
+            if (socket) {
+                console.log('RceiveMessage off');
+                socket.off("RceiveMessage");
+            }
+        };
+    }, [socket, socketConnected]);
+
+    // Fetch conversation and messages when user is selected
+    useEffect(() => {
+        if (selectedUserId) {
+            const fetchConversationAndMessages = async () => {
+                setLoading(true);
+                try {
+                    const conversationResponse = await getConversationByUserId(selectedUserId);
+                    if (conversationResponse.status === 200) {
+                        setConversionInfo(conversationResponse.data);
+                        const conversationId = conversationResponse.data.id;
+
+                        // Join the chat room if socket is connected
+                        if (socket && socketConnected && conversationId) {
+                            joinChatRoom(conversationId);
+                        }
+
+                        const messagesResponse = await getMessagesByConversationId(conversationId);
+                        if (messagesResponse.status === 200) {
+                            setRecipientInfo(messagesResponse.data.recipient);
+                            setSelectedUser(messagesResponse.data.recipient);
+                            setMessages(messagesResponse.data.messages || []);
+                        } else {
+                            console.error("Failed to fetch messages:", messagesResponse.message);
+                        }
+                    } else {
+                        console.error("Failed to fetch conversation:", conversationResponse.message);
+                    }
+                } catch (error) {
+                    console.error("Error fetching conversation or messages:", error);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            fetchConversationAndMessages();
+        }
+    }, [selectedUserId, socket, socketConnected]);
+
+    // Handle message decryption
+    const { decryptedMessages } = useMessageHandling(messages, privateKey, user?.id);
+
+    // Handle sending messages
+    const handleSendMessage = async (message) => {
+        try {
+            const { user } = JSON.parse(localStorage.getItem("userData"));
+            const senderPublicKey = user?.public_key;
+            const recipientPublicKey = recipientInfo?.public_key;
+            const encryptedData = await encryptMessage(message, senderPublicKey, recipientPublicKey);
+
+            // Create message data
+            const messageData = {
+                message: encryptedData.encryptedMessage,
+                senderDecryptKey: encryptedData.encryptedKeyForSender,
+                receiverDecryptKey: encryptedData.encryptedKeyForRecipient,
+                iv: encryptedData.iv,
+                recipientId: selectedUserId,
+                conversationId: conversionInfo?.id,
+                authTag: encryptedData.authTag,
+            };
+
+            // Send via HTTP
+            await sendMessageToServer(messageData);
+
+            // Send via socket if connected
+            sendSocketMessage({
+                message             : encryptedData.encryptedMessage,
+                sender_decrypt_key  : encryptedData.encryptedKeyForSender,
+                receiver_decrypt_key: encryptedData.encryptedKeyForRecipient,
+                iv                  : encryptedData.iv,
+                recipientId         : selectedUserId,
+                conversationId      : conversionInfo?.id,
+                auth_tag            : encryptedData.authTag,
+                sender_id           : user?.id,
+            });
+        } catch (error) {
+            console.error("Error encrypting or sending message:", error);
+        }
     };
 
-    if (messages.length > 0) {
-      decryptMessages();
-    }
-  }, [messages, privateKey, user?.id]);
-
-  const handleSendMessage = async () => {
-    if (!inputMessage.trim()) return;
-
-    try {
-      const { user } = JSON.parse(localStorage.getItem("userData"));
-      const senderPublicKey = user?.public_key;
-      const recipientPublicKey = recipientInfo?.public_key;
-      const encryptedData = await encryptMessage(inputMessage, senderPublicKey, recipientPublicKey);
-
-      // Send the encrypted message to the server
-      const response = await sendMessageToServer({
-        message: encryptedData.encryptedMessage,
-        senderDecryptKey: encryptedData.encryptedKeyForSender,
-        receiverDecryptKey: encryptedData.encryptedKeyForRecipient,
-        iv: encryptedData.iv,
-        recipientId: selectedUserId,
-        conversationId: conversionInfo?.id,
-        authTag: encryptedData.authTag,
-      });
-
-      // Emit the message via socket
-      socket.emit("SendMessage", {
-        message: encryptedData.encryptedMessage,
-        senderDecryptKey: encryptedData.encryptedKeyForSender,
-        receiverDecryptKey: encryptedData.encryptedKeyForRecipient,
-        iv: encryptedData.iv,
-        recipientId: selectedUserId,
-        conversationId: conversionInfo?.id,
-        authTag: encryptedData.authTag,
-      });
-
-      setInputMessage(""); // Clear the input field
-    } catch (error) {
-      console.error("Error encrypting or sending message:", error);
-    }
-  };
-
-  if (!selectedUser) {
-    return (
-      <div className="flex items-center justify-center h-full text-gray-500">
-        Select a user to start chatting
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col h-full bg-gray-100">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 bg-white shadow border-b">
-        <div className="flex items-center gap-3">
-          <Avatar>
-            <AvatarImage src={selectedUser?.avatar || "https://github.com/shadcn.png"} />
-            <AvatarFallback>{selectedUser?.name ? selectedUser?.name[0] : 'CN'}</AvatarFallback>
-          </Avatar>
-          <div>
-            <h2 className="text-sm font-semibold">{selectedUser?.name}</h2>
-            <p className="text-xs text-gray-500">online</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Messages */}
-      <ScrollArea className="flex-1 px-4 py-2 space-y-2 overflow-y-auto">
-        {loading ? (
-          <div className="text-center text-gray-500">Loading messages...</div>
-        ) : (
-          decryptedMessages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex my-1 ${msg.sender_id === user?.id ? "justify-end" : "justify-start"}`}
-            >
-              <div
-                className={`rounded-lg px-4 py-2 text-sm max-w-xs shadow ${msg.sender_id === user?.id ? "bg-green-100 text-black" : "bg-white text-black border"
-                  }`}
-              >
-                <p>{msg.decryptedMessage}</p>
-                <p className="text-xs text-gray-500 text-right mt-1">{msg.created_at}</p>
-              </div>
+    if (!selectedUser) {
+        return (
+            <div className="flex items-center justify-center h-full text-gray-500">
+                Select a user to start chatting
             </div>
-          ))
-        )}
-      </ScrollArea>
+        );
+    }
 
-      {/* Input */}
-      <div className="flex items-center gap-1 p-4 border-t bg-white">
-        <Input
-          placeholder="Type a message"
-          className="flex-1 rounded-full border-gray-300"
-          value={inputMessage}
-          onChange={(e) => setInputMessage(e.target.value)}
-        />
-        <Button
-          size="icon"
-          className="bg-green-500 text-white hover:bg-green-600"
-          onClick={handleSendMessage}
-          disabled={inputMessage ? false : true}
-        >
-          <Send className="w-5 h-5" />
-        </Button>
-      </div>
-    </div>
-  );
+    return (
+        <div className="flex flex-col h-full bg-gray-100">
+            <ChatHeader
+                user={selectedUser}
+                socketConnected={socketConnected}
+                socketError={socketError}
+            />
+
+            <MessageDisplay
+                messages={decryptedMessages}
+                userId={user?.id}
+                loading={loading}
+            />
+
+            <MessageInput
+                onSendMessage={handleSendMessage}
+                disabled={!socketConnected || !recipientInfo}
+            />
+        </div>
+    );
 };
 
 export default ChatInbox;
