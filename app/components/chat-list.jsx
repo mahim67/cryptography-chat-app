@@ -11,6 +11,8 @@ import { NewUser } from "./new-user";
 
 export default function ChatList({ onSelectUser }) {
     const [allUsers, setAllUsers] = useState([]);
+    const [filteredUsers, setFilteredUsers] = useState([]);
+    const [searchQuery, setSearchQuery] = useState("");
     const router = useRouter();
 
     useEffect(() => {
@@ -19,6 +21,7 @@ export default function ChatList({ onSelectUser }) {
                 const response = await getAllUsers();
                 if (response.status === 200) {
                     setAllUsers(response.data);
+                    setFilteredUsers(response.data);
                 } else {
                     console.error("Error fetching users:", response.message);
                 }
@@ -30,8 +33,18 @@ export default function ChatList({ onSelectUser }) {
         fetchUsers();
     }, []);
 
+    const handleSearch = (event) => {
+        const query = event.target.value.toLowerCase();
+        setSearchQuery(query);
+        setFilteredUsers(
+            allUsers.filter((user) =>
+                user.name.toLowerCase().includes(query)
+            )
+        );
+    };
+
     const handleUserClick = (user) => {
-        onSelectUser(user); // Pass the selected user to the parent
+        onSelectUser(user);
         router.push(`/user/${user?.id}`);
     };
 
@@ -48,18 +61,23 @@ export default function ChatList({ onSelectUser }) {
                             <form>
                                 <div className="relative">
                                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                                    <Input placeholder="Search" className="pl-8" />
+                                    <Input
+                                        placeholder="Search"
+                                        className="pl-8"
+                                        defaultValue={searchQuery}
+                                        onChange={handleSearch}
+                                    />
                                 </div>
                             </form>
                         </div>
                     </div>
                     <ScrollArea className="h-[calc(100vh-96px)] bg-muted">
                         <ul>
-                            {(allUsers.length > 0) && allUsers.map((user, index) => (
+                            {(filteredUsers.length > 0) && filteredUsers.map((user, index) => (
                                 <li
                                     key={index}
                                     className="flex items-center justify-between p-2 hover:bg-gray-200 cursor-pointer my-1 mx-2 bg-white rounded-sm"
-                                    onClick={() => handleUserClick(user)} // Handle user click
+                                    onClick={() => handleUserClick(user)}
                                 >
                                     <div className="flex items-center space-x-3">
                                         <Avatar>
