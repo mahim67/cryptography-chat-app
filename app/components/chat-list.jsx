@@ -8,12 +8,24 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { getAllUsers } from "@/services/chat-list-service";
 import { NewUser } from "./new-user";
+import { decryptMessage } from "@/lib/cryptoFunctions";
+import { formatDistanceToNow } from "date-fns";
 
 export default function ChatList({ onSelectUser }) {
     const [allUsers, setAllUsers] = useState([]);
     const [filteredUsers, setFilteredUsers] = useState([]);
     const [searchQuery, setSearchQuery] = useState("");
     const router = useRouter();
+    const [loginUser, setLoginUser] = useState(null);
+    const [privatekey, setPrivatekey] = useState(null);
+
+    useEffect(() => {
+        const userData = localStorage.getItem("userData");
+        if (userData) {
+            setLoginUser(JSON.parse(userData).user);
+            setPrivatekey(JSON.parse(userData).privateKey);
+        }
+    }, []);
 
     useEffect(() => {
         const fetchUsers = async () => {
@@ -30,8 +42,11 @@ export default function ChatList({ onSelectUser }) {
             }
         };
 
-        fetchUsers();
-    }, []);
+        if (privatekey) {
+            fetchUsers();
+        }
+
+    }, [privatekey]);
 
     const handleSearch = (event) => {
         const query = event.target.value.toLowerCase();
@@ -45,7 +60,7 @@ export default function ChatList({ onSelectUser }) {
 
     const handleUserClick = (user) => {
         onSelectUser(user);
-        router.push(`/user/${user?.id}`);
+        router.push(`/user/${user?.user_id}`);
     };
 
     return (
@@ -76,16 +91,28 @@ export default function ChatList({ onSelectUser }) {
                             {(filteredUsers.length > 0) && filteredUsers.map((user, index) => (
                                 <li
                                     key={index}
-                                    className="flex items-center justify-between p-2 hover:bg-gray-200 cursor-pointer my-1 mx-2 bg-white rounded-sm"
-                                    onClick={() => handleUserClick(user)}
+                                    className="flex items-center p-2 hover:bg-gray-200 cursor-pointer my-1 mx-2 bg-white rounded-sm"
+                                    onClick={() => handleUserClick(user?.participants)}
                                 >
-                                    <div className="flex items-center space-x-3">
+                                    <div className="flex items-center gap-2 w-full">
                                         <Avatar>
                                             <AvatarImage src="https://github.com/shadcn.png" />
                                             <AvatarFallback>CN</AvatarFallback>
                                         </Avatar>
-                                        <div>
-                                            <div className="font-semibold">{user.name}</div>
+                                        <div className="w-full">
+                                            <div className="flex items-center justify-between w-full">
+                                                <div className="font-semibold">{user?.participants?.name}</div>
+                                                <div className="text-xs">
+                                                    {user?.lastMessage?.created_at ? formatDistanceToNow(new Date(user?.lastMessage?.created_at), {
+                                                        addSuffix: true,
+                                                    }) : ''}
+                                                </div>
+                                            </div>
+                                            <ChatUserMessageDecrypt
+                                                lastMessage={user?.lastMessage}
+                                                privateKey={privatekey}
+                                                loginUser={loginUser}
+                                            />
                                         </div>
                                     </div>
                                 </li>
@@ -97,3 +124,35 @@ export default function ChatList({ onSelectUser }) {
         </>
     );
 }
+
+const ChatUserMessageDecrypt = ({ lastMessage, privateKey, loginUser }) => {
+    const [message, setMessage] = useState('');
+    const textLimit = 50;
+
+    useEffect(() => {
+        const decryptedMessage = async () => {
+            const decryptKey = lastMessage.sender_id === loginUser.id ? lastMessage.sender_decrypt_key : lastMessage.receiver_decrypt_key;
+
+            const decrypted = await decryptMessage(
+                lastMessage?.message,
+                decryptKey,
+                lastMessage?.iv,
+                privateKey,
+                lastMessage?.auth_tag
+            );
+            setMessage(decrypted);
+        };
+
+        if (lastMessage) {
+            decryptedMessage();
+        }
+    }, [lastMessage, privateKey]);
+
+    const truncatedMessage = message.length > textLimit ? `${message.slice(0, textLimit)}...` : message;
+
+    return (
+        <div className="text-xs text-gray-500">
+            {truncatedMessage}
+        </div>
+    );
+};

@@ -48,7 +48,6 @@ const ChatInbox = ({ selectedUserId }) => {
         if (socket && socketConnected) {
             console.log('RceiveMessage on');
             socket.on("RceiveMessage", (newMessage) => {
-                console.log("New message received:", newMessage);
                 setMessages((prevMessages) => [...prevMessages, newMessage]);
             });
         }

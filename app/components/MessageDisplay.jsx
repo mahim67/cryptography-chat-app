@@ -3,7 +3,6 @@ import formatDistanceToNow from "date-fns/formatDistanceToNow"
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 const MessageDisplay = ({ messages, userId, loading }) => {
-  console.log(messages);
 
   return (
     <ScrollArea className="flex-1 px-4 py-2 space-y-2 overflow-y-auto">
