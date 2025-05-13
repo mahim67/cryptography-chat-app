@@ -9,11 +9,42 @@ export const getAllUsers = async () => {
                 message: "Unauthorized"
             }
         }
-        const response = await axios.get(process.env.NEXT_PUBLIC_API_BASE_URL + "api/users", {
+        const response = await axios.get(process.env.NEXT_PUBLIC_API_BASE_URL + "api/conversations", {
             headers: {
                 Authorization: `Bearer ${token}` // Add Authorization header
             }
         });
+
+        return {
+            status: response?.status,
+            data: response.data
+        }
+
+    } catch (error) {
+        console.log('catch ' + error);
+        return {
+            status: error.response?.status,
+            message: error.response?.data?.error || error.message || "Unknown error occurred"
+        }
+    }
+};
+
+export const getSearchingUsers = async (search) => {
+    try {
+        const { token } = JSON.parse(localStorage.getItem("userData") ?? ''); // Retrieve token from localStorage
+        if (!token) {
+            return {
+                status: 401,
+                message: "Unauthorized"
+            }
+        }
+        const response = await axios.post(process.env.NEXT_PUBLIC_API_BASE_URL + "api/search-users",
+            { q: search ?? '' },
+            {
+                headers: {
+                    Authorization: `Bearer ${token}` // Add Authorization header
+                }
+            });
 
         return {
             status: response?.status,

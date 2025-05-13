@@ -6,8 +6,8 @@ import { usePathname } from "next/navigation";
 const AppLayout = ({ children }) => {
     const [selectedUser, setSelectedUser] = useState(null);
     console.log(selectedUser);
-    const pathname = usePathname();
 
+    const pathname = usePathname();
     const noLayoutRoutes = ["/login", "/register"];
     const isNoLayoutRoute = noLayoutRoutes.includes(pathname);
     

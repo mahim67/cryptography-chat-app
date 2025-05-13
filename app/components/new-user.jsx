@@ -1,45 +1,63 @@
 "use client"
 
-import React, { useState } from "react"
-import { Check, Plus, Send } from "lucide-react"
+import React, { useEffect, useState } from "react"
+import { Check, Plus } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import { getSearchingUsers } from "@/services/chat-list-service"
+import { useRouter } from "next/navigation"
 
-const users = [
-    {
-        name: "Olivia Martin",
-        email: "m@example.com",
-        avatar: "/avatars/01.png",
-    },
-    {
-        name: "Isabella Nguyen",
-        email: "isabella.nguyen@email.com",
-        avatar: "/avatars/03.png",
-    },
-    {
-        name: "Emma Wilson",
-        email: "emma@example.com",
-        avatar: "/avatars/05.png",
-    },
-    {
-        name: "Jackson Lee",
-        email: "lee@example.com",
-        avatar: "/avatars/02.png",
-    },
-    {
-        name: "William Kim",
-        email: "will@email.com",
-        avatar: "/avatars/04.png",
-    },
-]
+// const users = [
+//     {
+//         name: "Olivia Martin",
+//         email: "m@example.com",
+//         avatar: "/avatars/01.png",
+//     },
+//     {
+//         name: "Isabella Nguyen",
+//         email: "isabella.nguyen@email.com",
+//         avatar: "/avatars/03.png",
+//     },
+//     {
+//         name: "Emma Wilson",
+//         email: "emma@example.com",
+//         avatar: "/avatars/05.png",
+//     },
+//     {
+//         name: "Jackson Lee",
+//         email: "lee@example.com",
+//         avatar: "/avatars/02.png",
+//     },
+//     {
+//         name: "William Kim",
+//         email: "will@email.com",
+//         avatar: "/avatars/04.png",
+//     },
+// ]
 
 export function NewUser() {
-    const [open, setOpen] = useState(false)
-    const [selectedUsers, setSelectedUsers] = useState([])
+    const [open, setOpen] = useState(false);
+    const [query, setQuery] = useState('');
+    const [users, setUsers] = useState([]);
+    const [selectedUser, setSelectedUser] = useState(null);
+    const router = useRouter();
+
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(async () => {
+            const response = await getSearchingUsers(query);
+            if (response.status === 200) {
+                setUsers(response.data);
+            } else {
+                console.error("Error fetching users:", response.message);
+            }
+        }, 500)
+
+        return () => clearTimeout(delayDebounceFn)
+    }, [open, query]);
 
     return (
         <>
@@ -69,7 +87,10 @@ export function NewUser() {
                         </DialogDescription>
                     </DialogHeader>
                     <Command className="overflow-hidden rounded-t-none border-t bg-transparent">
-                        <CommandInput placeholder="Search user..." />
+                        <CommandInput
+                            placeholder="Search user..."
+                            onValueChange={(value) => setQuery(value)}
+                        />
                         <CommandList>
                             <CommandEmpty>No users found.</CommandEmpty>
                             <CommandGroup className="p-2">
@@ -77,21 +98,7 @@ export function NewUser() {
                                     <CommandItem
                                         key={user.email}
                                         className="flex items-center px-2"
-                                        onSelect={() => {
-                                            if (selectedUsers.includes(user)) {
-                                                return setSelectedUsers(
-                                                    selectedUsers.filter(
-                                                        (selectedUser) => selectedUser !== user
-                                                    )
-                                                )
-                                            }
-
-                                            return setSelectedUsers(
-                                                [...users].filter((u) =>
-                                                    [...selectedUsers, user].includes(u)
-                                                )
-                                            )
-                                        }}
+                                        onSelect={() => setSelectedUser(user)}
                                     >
                                         <Avatar>
                                             <AvatarImage src={user.avatar} alt="Image" />
@@ -105,7 +112,7 @@ export function NewUser() {
                                                 {user.email}
                                             </p>
                                         </div>
-                                        {selectedUsers.includes(user) && (
+                                        {selectedUser?.id === user?.id && (
                                             <Check className="ml-auto flex h-5 w-5 text-primary" />
                                         )}
                                     </CommandItem>
@@ -114,17 +121,15 @@ export function NewUser() {
                         </CommandList>
                     </Command>
                     <DialogFooter className="flex items-center border-t p-4 sm:justify-between">
-                        {selectedUsers.length > 0 ? (
+                        {selectedUser ? (
                             <div className="flex -space-x-2 overflow-hidden">
-                                {selectedUsers.map((user) => (
-                                    <Avatar
-                                        key={user.email}
-                                        className="inline-block border-2 border-background"
-                                    >
-                                        <AvatarImage src={user.avatar} />
-                                        <AvatarFallback>{user.name[0]}</AvatarFallback>
-                                    </Avatar>
-                                ))}
+                                <Avatar
+                                    key={selectedUser.email}
+                                    className="inline-block border-2 border-background"
+                                >
+                                    <AvatarImage src={selectedUser.avatar} />
+                                    <AvatarFallback>{selectedUser?.name[0]}</AvatarFallback>
+                                </Avatar>
                             </div>
                         ) : (
                             <p className="text-sm text-muted-foreground">
@@ -132,9 +137,10 @@ export function NewUser() {
                             </p>
                         )}
                         <Button
-                            disabled={selectedUsers.length < 2}
+                            disabled={selectedUser === null}
                             onClick={() => {
-                                setOpen(false)
+                                setOpen(false);
+                                router.push(`/user/${selectedUser?.id}`);                                
                             }}
                         >
                             Continue
