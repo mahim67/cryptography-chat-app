@@ -24,6 +24,7 @@ import Cookies from "js-cookie"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
+import Link from "next/link"
 
 export function NavUser() {
     const router = useRouter();
@@ -73,10 +74,12 @@ export function NavUser() {
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuGroup>
-                        <DropdownMenuItem>
-                            <BadgeCheck />
-                            Account
-                        </DropdownMenuItem>
+                        <Link href={`/profile`}>
+                            <DropdownMenuItem>
+                                <BadgeCheck />
+                                Account
+                            </DropdownMenuItem>
+                        </Link>
                         <DropdownMenuItem>
                             <Bell />
                             Notifications

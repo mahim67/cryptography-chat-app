@@ -47,7 +47,6 @@ export default function ChatList({ onSelectUser }) {
         }
 
     }, [privatekey]);
-
     const handleSearch = (event) => {
         const query = event.target.value.toLowerCase();
         setSearchQuery(query);
@@ -57,11 +56,13 @@ export default function ChatList({ onSelectUser }) {
             )
         );
     };
-
     const handleUserClick = (user) => {
         onSelectUser(user);
         router.push(`/user/${user?.user_id}`);
     };
+
+    // Socket Configuration 
+    
 
     return (
         <>

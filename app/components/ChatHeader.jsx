@@ -1,5 +1,9 @@
 import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import Link from 'next/link';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Button } from '@/components/ui/button';
+import { DoorOpen } from 'lucide-react';
 
 const ChatHeader = ({ user, socketConnected, socketError }) => {
   return (
@@ -15,6 +19,19 @@ const ChatHeader = ({ user, socketConnected, socketError }) => {
             {socketConnected ? "online" : socketError ? "connection error" : "connecting..."}
           </p>
         </div>
+      </div>
+      <div>
+        <Link href={"/"}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className='cursor-pointer'>
+                <DoorOpen className="h-12 w-12" />
+                <span className="sr-only">Leave Chat</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Leave Chat</TooltipContent>
+          </Tooltip>
+        </Link>
       </div>
     </div>
   );

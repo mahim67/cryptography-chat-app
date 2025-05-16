@@ -40,8 +40,7 @@ const ChatInbox = ({ selectedUserId }) => {
     }, []);
 
     // Initialize socket connection
-    const { socket, socketConnected, socketError, joinChatRoom, sendSocketMessage } =
-        useSocketConnection(user?.id, conversionInfo?.id);
+    const { socket, socketConnected, socketError, joinChatRoom, sendSocketMessage } = useSocketConnection(user?.id, conversionInfo?.id);
 
     // Listen for incoming messages
     useEffect(() => {

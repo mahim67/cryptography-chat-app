@@ -11,34 +11,6 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { getSearchingUsers } from "@/services/chat-list-service"
 import { useRouter } from "next/navigation"
 
-// const users = [
-//     {
-//         name: "Olivia Martin",
-//         email: "m@example.com",
-//         avatar: "/avatars/01.png",
-//     },
-//     {
-//         name: "Isabella Nguyen",
-//         email: "isabella.nguyen@email.com",
-//         avatar: "/avatars/03.png",
-//     },
-//     {
-//         name: "Emma Wilson",
-//         email: "emma@example.com",
-//         avatar: "/avatars/05.png",
-//     },
-//     {
-//         name: "Jackson Lee",
-//         email: "lee@example.com",
-//         avatar: "/avatars/02.png",
-//     },
-//     {
-//         name: "William Kim",
-//         email: "will@email.com",
-//         avatar: "/avatars/04.png",
-//     },
-// ]
-
 export function NewUser() {
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState('');
