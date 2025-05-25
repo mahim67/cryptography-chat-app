@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { getSearchingUsers } from "@/services/chat-list-service"
 import { useRouter } from "next/navigation"
+import { useConversationContext } from "@/contexts/ConversationContext"
 
 export function NewUser() {
     const [open, setOpen] = useState(false);
@@ -17,6 +18,7 @@ export function NewUser() {
     const [users, setUsers] = useState([]);
     const [selectedUser, setSelectedUser] = useState(null);
     const router = useRouter();
+    const { refreshConversations } = useConversationContext();
 
     useEffect(() => {
         const delayDebounceFn = setTimeout(async () => {
@@ -110,9 +112,17 @@ export function NewUser() {
                         )}
                         <Button
                             disabled={selectedUser === null}
-                            onClick={() => {
+                            onClick={async () => {
                                 setOpen(false);
-                                router.push(`/user/${selectedUser?.id}`);                                
+                                
+                                // Navigate to user page
+                                router.push(`/user/${selectedUser?.id}`);
+                                
+                                // Reset selected user to allow for re-selection
+                                setSelectedUser(null);
+                                
+                                // Trigger refresh immediately to update sidebar
+                                refreshConversations();
                             }}
                         >
                             Continue

@@ -15,6 +15,11 @@ export function useMessageHandling(messages, privateKey, userId) {
                 const decrypted = await Promise.all(
                     messages.map(async (msg) => {
                         try {
+                            // If this is a temporary message with status, it already has decryptedMessage set
+                            if (msg.status && msg.decryptedMessage) {
+                                return msg; // Return as is, no need to decrypt
+                            }
+
                             const decryptKey = msg.sender_id === userId ? msg.sender_decrypt_key : msg.receiver_decrypt_key;
                             if (!msg.message || !decryptKey || !msg.iv || !privateKey) {
                                 console.warn("Missing required decryption parameters for message:", msg.id);

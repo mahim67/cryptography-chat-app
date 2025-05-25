@@ -4,17 +4,28 @@ import { useRouter } from "next/navigation";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search } from "lucide-react";
+import { Search, RotateCcw } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { getAllUsers } from "@/services/chat-list-service";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { NewUser } from "./new-user";
 import { decryptMessage } from "@/lib/cryptoFunctions";
 import { formatDistanceToNow } from "date-fns";
+import { useConversationContext } from "@/contexts/ConversationContext";
 
 export default function ChatList({ onSelectUser }) {
-    const [allUsers, setAllUsers] = useState([]);
-    const [filteredUsers, setFilteredUsers] = useState([]);
-    const [searchQuery, setSearchQuery] = useState("");
+    const {
+        conversations,
+        loading,
+        error,
+        searchQuery,
+        handleSearch,
+        refreshConversations,
+        socketConnected,
+        socketError,
+        isUserOnline
+    } = useConversationContext();
+    
     const router = useRouter();
     const [loginUser, setLoginUser] = useState(null);
     const [privatekey, setPrivatekey] = useState(null);
@@ -27,35 +38,6 @@ export default function ChatList({ onSelectUser }) {
         }
     }, []);
 
-    useEffect(() => {
-        const fetchUsers = async () => {
-            try {
-                const response = await getAllUsers();
-                if (response.status === 200) {
-                    setAllUsers(response.data);
-                    setFilteredUsers(response.data);
-                } else {
-                    console.error("Error fetching users:", response.message);
-                }
-            } catch (error) {
-                console.error("Error fetching users:", error);
-            }
-        };
-
-        if (privatekey) {
-            fetchUsers();
-        }
-
-    }, [privatekey]);
-    const handleSearch = (event) => {
-        const query = event.target.value.toLowerCase();
-        setSearchQuery(query);
-        setFilteredUsers(
-            allUsers.filter((user) =>
-                user.name.toLowerCase().includes(query)
-            )
-        );
-    };
     const handleUserClick = (user) => {
         onSelectUser(user);
         router.push(`/user/${user?.user_id}`);
@@ -71,7 +53,33 @@ export default function ChatList({ onSelectUser }) {
                     <div className="border-b p-4">
                         <div className="flex">
                             <h2 className="text-lg font-semibold">Chats</h2>
-                            <NewUser />
+                            {/* Socket Status Indicator */}
+                            <div className="ml-2 flex items-center">
+                                <div className={`w-2 h-2 rounded-full ${socketConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                                <span className="ml-1 text-xs text-gray-500">
+                                    {socketConnected ? 'Online' : 'Offline'}
+                                </span>
+                            </div>
+                            <div className="ml-auto flex gap-2">
+                                <TooltipProvider delayDuration={0}>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                size="icon"
+                                                variant="outline"
+                                                className="rounded-full"
+                                                onClick={refreshConversations}
+                                                disabled={loading}
+                                            >
+                                                <RotateCcw className={loading ? "animate-spin" : ""} />
+                                                <span className="sr-only">Refresh conversations</span>
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent sideOffset={10}>Refresh conversations</TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                                <NewUser />
+                            </div>
                         </div>
                         <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 mt-2">
                             <form>
@@ -81,28 +89,47 @@ export default function ChatList({ onSelectUser }) {
                                         placeholder="Search"
                                         className="pl-8"
                                         defaultValue={searchQuery}
-                                        onChange={handleSearch}
+                                        onChange={(e) => handleSearch(e.target.value)}
                                     />
                                 </div>
                             </form>
                         </div>
                     </div>
                     <ScrollArea className="h-[calc(100vh-96px)] bg-muted">
-                        <ul>
-                            {(filteredUsers.length > 0) && filteredUsers.map((user, index) => (
+                        {error ? (
+                            <div className="flex items-center justify-center p-4">
+                                <div className="text-sm text-red-500">Error: {error}</div>
+                            </div>
+                        ) : conversations.length === 0 ? (
+                            <div className="flex items-center justify-center p-4">
+                                <div className="text-sm text-muted-foreground">No conversations yet</div>
+                            </div>
+                        ) : (
+                            <ul>
+                                {conversations.map((user, index) => (
                                 <li
                                     key={index}
                                     className="flex items-center p-2 hover:bg-gray-200 cursor-pointer my-1 mx-2 bg-white rounded-sm"
                                     onClick={() => handleUserClick(user?.participants)}
                                 >
                                     <div className="flex items-center gap-2 w-full">
-                                        <Avatar>
-                                            <AvatarImage src="https://github.com/shadcn.png" />
-                                            <AvatarFallback>CN</AvatarFallback>
-                                        </Avatar>
+                                        <div className="relative">
+                                            <Avatar>
+                                                <AvatarImage src="https://github.com/shadcn.png" />
+                                                <AvatarFallback>CN</AvatarFallback>
+                                            </Avatar>
+                                            {isUserOnline(user?.participants?.user_id) && (
+                                                <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-white" />
+                                            )}
+                                        </div>
                                         <div className="w-full">
                                             <div className="flex items-center justify-between w-full">
-                                                <div className="font-semibold">{user?.participants?.name}</div>
+                                                <div className="flex items-center">
+                                                    <div className="font-semibold">{user?.participants?.name}</div>
+                                                    <span className="ml-2 text-xs text-gray-500">
+                                                        {isUserOnline(user?.participants?.user_id) ? "(online)" : ""}
+                                                    </span>
+                                                </div>
                                                 <div className="text-xs">
                                                     {user?.lastMessage?.created_at ? formatDistanceToNow(new Date(user?.lastMessage?.created_at), {
                                                         addSuffix: true,
@@ -118,7 +145,8 @@ export default function ChatList({ onSelectUser }) {
                                     </div>
                                 </li>
                             ))}
-                        </ul>
+                            </ul>
+                        )}
                     </ScrollArea>
                 </CardContent>
             </Card>
