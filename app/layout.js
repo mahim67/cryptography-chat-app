@@ -1,13 +1,12 @@
 'use client'
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import { Toaster } from "sonner";
-import AppLayout from "./_app";
-import { AuthProvider, useAuth } from "../contexts/AuthContext";
+import { AuthProvider } from "../contexts/AuthContext";
 import { ConversationProvider } from "../contexts/ConversationContext";
+import { Toaster } from "sonner";
+import { Geist, Geist_Mono } from "next/font/google";
+import AuthGate from "./AuthGate";
+import AppLayout from "./_app";
+import "./globals.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,15 +19,6 @@ const geistMono = Geist_Mono({
 });
 
 export default function RootLayout({ children }) {
-  const router = useRouter();
-  const { isAuthenticated, loading } = useAuth();
-
-  useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      router.push("/login");
-    }
-  }, [isAuthenticated, loading, router]);
-
   return (
     <html lang="en">
       <body
@@ -37,7 +27,9 @@ export default function RootLayout({ children }) {
         <AuthProvider>
           <ConversationProvider>
             <Toaster position="top-right" />
-            <AppLayout>{children}</AppLayout>
+            <AuthGate>
+              <AppLayout>{children}</AppLayout>
+            </AuthGate>
           </ConversationProvider>
         </AuthProvider>
       </body>
