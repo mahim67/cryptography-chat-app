@@ -4,7 +4,6 @@ import { AuthProvider } from "../contexts/AuthContext";
 import { ConversationProvider } from "../contexts/ConversationContext";
 import { Toaster } from "sonner";
 import { Geist, Geist_Mono } from "next/font/google";
-import AuthGate from "./AuthGate";
 import AppLayout from "./_app";
 import "./globals.css";
 
@@ -27,9 +26,7 @@ export default function RootLayout({ children }) {
         <AuthProvider>
           <ConversationProvider>
             <Toaster position="top-right" />
-            <AuthGate>
-              <AppLayout>{children}</AppLayout>
-            </AuthGate>
+            <AppLayout>{children}</AppLayout>
           </ConversationProvider>
         </AuthProvider>
       </body>
