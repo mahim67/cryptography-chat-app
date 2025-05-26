@@ -32,14 +32,16 @@ export function LoginForm({ className, ...props }) {
 
             if (status === 200) {
                 data.privateKey = decryptPrivateKeyWithPassword(data.privateKey, formData.password);
-                
-                const userDataString = JSON.stringify(data);
-                localStorage.setItem("userData", userDataString);
+                // Store only the required structure for AuthContext
+                const userData = {
+                  user: data.user,
+                  token: data.token,
+                  privateKey: data.privateKey
+                };
+                localStorage.setItem("userData", JSON.stringify(userData));
                 Cookies.set("userData", JSON.stringify({ token: data.token, privateKey: data.privateKey }), { path: "/", expires: 2 });
-                
                 toast.success("Login successfully...");
                 router.push("/");
-                
             } else {
                 console.log('error', message);
                 toast.error(message || "Invalid credentials. Please try again.");
