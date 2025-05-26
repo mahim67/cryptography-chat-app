@@ -1,5 +1,5 @@
-import { AuthProvider } from '../../contexts/AuthContext';
-import AuthDebugPanel from '../../components/auth/AuthDebugPanel';
+import { AuthProvider } from '@/contexts/AuthContext';
+import AuthDebugPanel from '@/components/auth/AuthDebugPanel';
 
 export default function AuthDebugPage() {
     return (
