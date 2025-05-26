@@ -6,7 +6,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
 import AppLayout from "./_app";
-import { AuthProvider } from "../contexts/AuthContext";
+import { AuthProvider, useAuth } from "../contexts/AuthContext";
 import { ConversationProvider } from "../contexts/ConversationContext";
 
 const geistSans = Geist({
@@ -21,13 +21,13 @@ const geistMono = Geist_Mono({
 
 export default function RootLayout({ children }) {
   const router = useRouter();
+  const { isAuthenticated, loading } = useAuth();
 
   useEffect(() => {
-    const userData = localStorage.getItem("userData");    
-    if (!userData) {
+    if (!loading && !isAuthenticated) {
       router.push("/login");
     }
-  }, [router]);
+  }, [isAuthenticated, loading, router]);
 
   return (
     <html lang="en">
