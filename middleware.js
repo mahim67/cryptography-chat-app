@@ -1,66 +1,28 @@
 import { NextResponse } from "next/server";
 
-function isValidToken(authCookie) {
-    if (!authCookie || !authCookie.value) {
-        return false;
-    }
-    
-    try {
-        const userData = JSON.parse(authCookie.value);
-        // Check if token exists and has proper structure
-        return userData && 
-               userData.token && 
-               typeof userData.token === 'string' && 
-               userData.token.trim().length > 0;
-    } catch (error) {
-        return false;
-    }
-}
-
 export function middleware(req) {
-    const { pathname } = req.nextUrl;
-    
-    // Skip middleware for static files and Next.js internals
-    if (pathname.startsWith('/_next') || 
-        pathname.startsWith('/api') || 
-        pathname.includes('.') ||
-        pathname === '/favicon.ico') {
-        return NextResponse.next();
-    }
+    console.log('req.cookies');
+    console.log(req.cookies);
+    const authToken = req.cookies.get("userData");
+    const url = req.nextUrl.clone();
 
-    const authCookie = req.cookies.get("userData");
-    const isAuthenticated = isValidToken(authCookie);
-    
-    // Add debug headers instead of console.log for production debugging
-    const response = NextResponse.next();
-    response.headers.set('x-middleware-path', pathname);
-    response.headers.set('x-middleware-auth', isAuthenticated.toString());
-    response.headers.set('x-middleware-cookie', authCookie ? 'present' : 'missing');
+    console.log("🔐 Cookie:", authToken?.value);
+    console.log("📍 URL:", url.pathname);
 
     const publicPaths = ["/login", "/register"];
-    
-    // Handle public paths (login, register)
-    if (publicPaths.some((path) => pathname.startsWith(path))) {
-        if (isAuthenticated) {
-            const redirectResponse = NextResponse.redirect(new URL("/", req.url));
-            redirectResponse.headers.set('x-middleware-action', 'redirect-to-dashboard');
-            return redirectResponse;
-        }
-        response.headers.set('x-middleware-action', 'allow-public');
-        return response;
+    const isPublic = publicPaths.includes(url.pathname);
+
+    if (isPublic && authToken) {
+        url.pathname = "/";
+        return NextResponse.redirect(url);
     }
 
-    // Protect all other routes
-    if (!isAuthenticated) {
-        const redirectResponse = NextResponse.redirect(new URL("/login", req.url));
-        redirectResponse.headers.set('x-middleware-action', 'redirect-to-login');
-        // Clear any invalid cookie before redirecting
-        redirectResponse.cookies.delete('userData');
-        return redirectResponse;
+    if (!isPublic && !authToken) {
+        url.pathname = "/login";
+        return NextResponse.redirect(url);
     }
 
-    response.headers.set('x-middleware-action', 'allow-protected');
-    return response;
+    return NextResponse.next();
 }
 
 export const config = {

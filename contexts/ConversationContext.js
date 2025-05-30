@@ -146,12 +146,12 @@ export const ConversationProvider = ({ children }) => {
             const userIdStr = userId.toString();
             
             // Log for debugging purposes
-            console.log(`Checking online status for user ID: ${userIdStr}`);
-            console.log(`Current online users:`, onlineUsers.map(u => u.userId?.toString()));
+            // console.log(`Checking online status for user ID: ${userIdStr}`);
+            // console.log(`Current online users:`, onlineUsers.map(u => u.userId?.toString()));
             
             // Check if user is in online users list
             const isOnline = onlineUsers.some(user => user.userId?.toString() === userIdStr);
-            console.log(`User ${userIdStr} is ${isOnline ? 'online' : 'offline'}`);
+            // console.log(`User ${userIdStr} is ${isOnline ? 'online' : 'offline'}`);
             
             return isOnline;
         }
