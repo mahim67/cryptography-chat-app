@@ -8,9 +8,11 @@ export function middleware(req) {
     const isPublic = publicPaths.includes(url.pathname);
 
     console.log(`Request for ${url.pathname} with authToken:`, authToken);
+    console.log(authToken);
     
-    if (isPublic && authToken.value) {
-        console.log(authToken.value);
+    
+    if (isPublic && authToken) {
+        console.log('IN');
         url.pathname = "/";
         return NextResponse.redirect(url);
     }
