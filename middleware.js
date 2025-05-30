@@ -11,7 +11,7 @@ export function middleware(req) {
     console.log(authToken);
     
     
-    if (isPublic && authToken) {
+    if (isPublic && authToken != undefined) {
         console.log('IN');
         url.pathname = "/";
         return NextResponse.redirect(url);
