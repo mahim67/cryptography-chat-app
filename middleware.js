@@ -9,8 +9,8 @@ export function middleware(req) {
 
     console.log(`Request for ${url.pathname} with authToken:`, authToken);
     
-    if (isPublic && authToken) {
-        console.log(authToken);
+    if (isPublic && authToken.value) {
+        console.log(authToken.value);
         url.pathname = "/";
         return NextResponse.redirect(url);
     }
