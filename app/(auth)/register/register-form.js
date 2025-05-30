@@ -98,7 +98,7 @@ export function RegisterForm({ className, ...props }) {
                         {isLoading && (
                             <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
                         )}
-                        Sign Up with Email
+                        Sign Up
                     </Button>
                 </div>
             </form>

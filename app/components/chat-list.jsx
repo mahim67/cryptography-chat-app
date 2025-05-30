@@ -160,6 +160,7 @@ const ChatUserMessageDecrypt = ({ lastMessage, privateKey, loginUser }) => {
 
     useEffect(() => {
         const decryptedMessage = async () => {
+            if(!loginUser) return;
             const decryptKey = lastMessage.sender_id === loginUser.id ? lastMessage.sender_decrypt_key : lastMessage.receiver_decrypt_key;
 
             const decrypted = await decryptMessage(

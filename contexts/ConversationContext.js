@@ -45,16 +45,16 @@ export const ConversationProvider = ({ children }) => {
             try {
                 if (socketConnected && currentUser) {
                     console.log('Fetching initial online users');
-                    const response = await apiClient.get('/users/online-users');
-                    if (response.data && response.data.online) {
-                        const onlineUserData = response.data.online.map(user => ({
-                            userId: user.id.toString(),
-                            status: 'online',
-                            timestamp: new Date().toISOString()
-                        }));
-                        setOnlineUsers(onlineUserData);
-                        console.log('Initial online users loaded:', onlineUserData);
-                    }
+                    // const response = await apiClient.get('/api/online-users');
+                    // if (response.data && response.data.online) {
+                    //     const onlineUserData = response.data.online.map(user => ({
+                    //         userId: user.id.toString(),
+                    //         status: 'online',
+                    //         timestamp: new Date().toISOString()
+                    //     }));
+                    //     setOnlineUsers(onlineUserData);
+                    //     console.log('Initial online users loaded:', onlineUserData);
+                    // }
                 }
             } catch (error) {
                 console.error('Error fetching online users:', error);
