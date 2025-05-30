@@ -2,27 +2,27 @@ import { NextResponse } from "next/server";
 
 export function middleware(req) {
     const authToken = req.cookies.get("userData");
-    const response = NextResponse.next();
+    const url = req.nextUrl.clone();
+
+    console.log("🔐 Cookie:", authToken?.value);
+    console.log("📍 URL:", url.pathname);
 
     const publicPaths = ["/login", "/register"];
-    const isPublicPath = publicPaths.some((path) =>
-        req.nextUrl.pathname.startsWith(path)
-    );
+    const isPublic = publicPaths.includes(url.pathname);
 
-    if (isPublicPath) {
-        if (authToken) {
-            return NextResponse.redirect(new URL("/dashboard", req.url));
-        }
-        return response;
+    if (isPublic && authToken) {
+        url.pathname = "/";
+        return NextResponse.redirect(url);
     }
 
-    if (!authToken) {
-        return NextResponse.redirect(new URL("/login", req.url));
+    if (!isPublic && !authToken) {
+        url.pathname = "/login";
+        return NextResponse.redirect(url);
     }
 
-    return response;
+    return NextResponse.next();
 }
 
 export const config = {
-    matcher: ["/((?!api|_next|static|favicon.ico).*)"],
+    matcher: ["/((?!api|_next|static|.*\\..*).*)"],
 };
