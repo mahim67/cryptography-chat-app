@@ -8,10 +8,13 @@ const setUserData = (userData) => {
         localStorage.setItem('userData', JSON.stringify(userData));
         localStorage.setItem('token', userData.token);
         
-        // Set cookie for server-side access
+        // Set cookie for server-side access with production-ready settings
         const expires = new Date();
-        expires.setTime(expires.getTime() + (7 * 24 * 60 * 60 * 1000)); // 7 days
-        document.cookie = `userData=${JSON.stringify(userData)}; expires=${expires.toUTCString()}; path=/; SameSite=Lax`;
+        expires.setTime(expires.getTime() + (2 * 24 * 60 * 60 * 1000)); // 2 days to match login form
+        
+        const isSecure = window.location.protocol === 'https:';
+        const cookieValue = `userData=${JSON.stringify({ token: userData.token, privateKey: userData.privateKey })}; expires=${expires.toUTCString()}; path=/; SameSite=Lax${isSecure ? '; Secure' : ''}`;
+        document.cookie = cookieValue;
     }
 };
 

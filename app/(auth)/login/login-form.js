@@ -39,9 +39,22 @@ export function LoginForm({ className, ...props }) {
                   privateKey: data.privateKey
                 };
                 localStorage.setItem("userData", JSON.stringify(userData));
-                Cookies.set("userData", JSON.stringify({ token: data.token, privateKey: data.privateKey }), { path: "/", expires: 2 });
+                
+                // Set cookie with proper settings for production HTTPS
+                const cookieOptions = {
+                    path: "/",
+                    expires: 2,
+                    secure: window.location.protocol === 'https:',
+                    sameSite: 'Lax'
+                };
+                
+                Cookies.set("userData", JSON.stringify({ token: data.token, privateKey: data.privateKey }), cookieOptions);
                 toast.success("Login successfully...");
-                router.push("/");
+                
+                // Add a small delay to ensure cookie is set before navigation
+                setTimeout(() => {
+                    router.push("/");
+                }, 100);
             } else {
                 console.log('error', message);
                 toast.error(message || "Invalid credentials. Please try again.");
