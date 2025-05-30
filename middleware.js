@@ -7,6 +7,8 @@ export function middleware(req) {
     const publicPaths = ["/login", "/register"];
     const isPublic = publicPaths.includes(url.pathname);
 
+    console.log(`Request for ${url.pathname} with authToken:`, authToken);
+    
     if (isPublic && authToken) {
         console.log(authToken);
         url.pathname = "/";
