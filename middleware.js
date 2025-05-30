@@ -5,9 +5,13 @@ export function middleware(req) {
     const response = NextResponse.next();
 
     const publicPaths = ["/login", "/register"];
-    if (publicPaths.some((path) => req.nextUrl.pathname.startsWith(path))) {
+    const isPublicPath = publicPaths.some((path) =>
+        req.nextUrl.pathname.startsWith(path)
+    );
+
+    if (isPublicPath) {
         if (authToken) {
-            return NextResponse.redirect(new URL("/", req.url));
+            return NextResponse.redirect(new URL("/dashboard", req.url));
         }
         return response;
     }
@@ -20,5 +24,5 @@ export function middleware(req) {
 }
 
 export const config = {
-    matcher: ["/((?!_next|favicon.ico).*)"], // Apply middleware to all routes except public assets
+    matcher: ["/((?!api|_next|static|favicon.ico).*)"],
 };
